@@ -15,14 +15,12 @@ func Chunk(filePath string, chunkSize int) ([]byte, error) {
 	}
 	defer file.Close()
 
-	// Get the file size
 	stat, err := file.Stat()
 	if err != nil {
 		fmt.Println(err)
 		return make([]byte, 0), err
 	}
 
-	// Read the file into a byte slice
 	bs := make([]byte, stat.Size())
 	_, err = bufio.NewReader(file).Read(bs)
 	if err != nil && err != io.EOF {
@@ -37,6 +35,6 @@ func Chunk(filePath string, chunkSize int) ([]byte, error) {
 	return bs, nil
 }
 
-func Restore() {
-
+func Restore(chunks []byte) os.File {
+	return *os.NewFile(nil, "whatever")
 }
