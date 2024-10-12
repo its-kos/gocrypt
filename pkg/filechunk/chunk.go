@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-func Chunk(filePath string, chunkSize int) ([][]byte, error) {
+func ChunkFile(filePath string, chunkSize int) ([][]byte, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
@@ -48,6 +48,18 @@ func Chunk(filePath string, chunkSize int) ([][]byte, error) {
 	}
 }
 
-// func Restore(chunks []byte) os.File {
-// 	return *os.NewFile(nil, "whatever")
-// }
+func StitchFile(chunks [][]byte, filePath string) error {
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	for _, chunk := range chunks {
+		_, err := file.Write(chunk)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
