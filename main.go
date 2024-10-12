@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/its-kos/gocrypt/pkg/filechunk"
@@ -14,9 +15,9 @@ func main() {
 
 	//encryptionKey := []byte("")  // AES-256 requires 32 bytes
 
-	_, err := filechunk.Chunk(filePath, chunkSize)
+	chunks, err := filechunk.Chunk(filePath, chunkSize)
 	if err != nil {
 		log.Fatalf("Error splitting file: %v", err)
 	}
-
+	fmt.Print("Chunks: ", chunks)
 }
