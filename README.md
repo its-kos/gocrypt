@@ -65,9 +65,10 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-This is a fun hobby project I created to learn Go more in depth. Using this tool, you will be able to store and encrypt your files on multiple nodes as well as retrieve them. 
+This is a fun hobby project I created to learn Go more in depth. This tool splits the file you input, encrypts then communicated the chunks to other peers in a P2P network. When acces is needed, peers communicate the requested chunks, decrypt them, the stitch the original file together. 
 
-Functionality so far is minimal but I aim to add more as I learn.
+The original scope for this is to be used for a P2P network of nodes in the same network for simple files. Individual setup on each node is needed.
+
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -92,33 +93,30 @@ Just have Go installed.
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
-
-_For more examples, please refer to the [Documentation](https://example.com)_
+TODO
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- ROADMAP -->
 ## Roadmap
 
-- [x] TODO
-- [x] TODO
-- [ ] TODO
-- [ ] TODO
-- [ ] TODO
-    - [ ] TODO
-    - [ ] TODO
+- [x] Basic chunking functionality
+- [x] Basic encrypting functionality
+- [ ] libp2p local network setup
+- [ ] finish documentation
+- [ ] cli implementation
+    - [x] basic boilerplate / scaffolding
+    - [ ] command implementation
 
 See the [open issues](https://github.com/its-kos/gocrypt) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
-
 <!-- CONTRIBUTING -->
 ## Contributing
 
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+Any contributions you make are **greatly appreciated**.
 
 If you have a suggestion that would make this better, please fork the repo and create a pull request. Or you can also simply open an issue.
 Don't forget to give the project a star! Thanks again!
