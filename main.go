@@ -26,14 +26,37 @@ func main() {
 					fmt.Println("Setting up host in here...", cCtx.Args().First())
 					return nil
 				},
-				Flags: []*cli.Flag{
-					Name: "test",
+			},
+			{
+				Name:    "upload",
+				Aliases: []string{"u"},
+				Usage:   "Upload file to Gocrypt network",
+				Action: func(cCtx *cli.Context) error {
+					fmt.Println("Uploading file here...", cCtx.Args().First())
+					return nil
+				},
+			},
+			{
+				Name:    "retrieve",
+				Aliases: []string{"r"},
+				Usage:   "Retrieve file from Gocrypt network",
+				Action: func(cCtx *cli.Context) error {
+					fmt.Println("Retrieving file in here...", cCtx.Args().First())
+					return nil
+				},
+			}, {
+				Name:    "list",
+				Aliases: []string{"l"},
+				Usage:   "List all running nodes of the Gocrypt network",
+				Action: func(cCtx *cli.Context) error {
+					fmt.Println("Listing nodes in here...", cCtx.Args().First())
+					return nil
 				},
 			},
 			{
 				Name:    "help",
 				Aliases: []string{"h"},
-				Usage:   "print help message",
+				Usage:   "Print help message",
 				Action: func(cCtx *cli.Context) error {
 					fmt.Println("Printing help message here...", cCtx.Args().First())
 					return nil
