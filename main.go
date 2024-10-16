@@ -95,13 +95,6 @@ func main() {
 						encrypted = append(encrypted, encryptedChunk)
 					}
 
-					// This block is only used for testing and should be removed at some point
-					err = filechunk.StitchFile(encrypted, "./files/testfile_encrypted.txt")
-					if err != nil {
-						log.Fatalf("Error splitting file: %v", err)
-					}
-					//
-
 					return nil
 				},
 			},
