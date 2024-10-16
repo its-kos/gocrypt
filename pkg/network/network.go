@@ -8,12 +8,13 @@ import (
 	"github.com/libp2p/go-libp2p/core/host"
 	peerstore "github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
+	"github.com/its-kos/gocrypt/pkg/utils"
 )
 
-func StartNode(listenAddr string) (host.Host, error) {
+func StartNode(listenAddr string, conf Config) (host.Host, error) {
 	node, err := libp2p.New(
 		libp2p.ListenAddrStrings(listenAddr),
-		libp2p.Ping(false),
+		libp2p.
 	)
 	if err != nil {
 		panic(err)
