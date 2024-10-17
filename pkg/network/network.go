@@ -5,19 +5,17 @@ import (
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/host"
 	peerstore "github.com/libp2p/go-libp2p/core/peer"
-	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 )
 
 func StartNode(listenAddr string, conf utils.Config) (host.Host, error) {
-	_, pk, err := utils.ReadKeys(conf)
-	if err != nil {
-		return nil, err
-	}
+	// _, pk, err := utils.ReadKeys(conf)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	node, err := libp2p.New(
 		libp2p.ListenAddrStrings(listenAddr),
-		libp2p.Identity(pk),
-		//libp2p.EnableNATService(),
+		//libp2p.Identity(pk),
 	)
 	if err != nil {
 		return nil, err
@@ -36,12 +34,4 @@ func StartNode(listenAddr string, conf utils.Config) (host.Host, error) {
 	// fmt.Println("Host node ID:", node.ID())
 
 	return node, nil
-}
-
-func SetupMDNS(node host.Host) error {
-	notifee := &discoveryNotifee{host: node}
-
-	mdnsService := mdns.NewMdnsService(node, "gocrypt", notifee)
-	mdnsService.Start()
-	return nil
 }
