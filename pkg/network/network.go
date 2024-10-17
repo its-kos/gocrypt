@@ -4,20 +4,25 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/its-kos/gocrypt/pkg/utils"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/host"
 	peerstore "github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
-	"github.com/its-kos/gocrypt/pkg/utils"
 )
 
-func StartNode(listenAddr string, conf Config) (host.Host, error) {
+func StartNode(listenAddr string, conf utils.Config) (host.Host, error) {
+	_, pk, err := utils.ReadKeys(conf)
+	if err != nil {
+		return nil, err
+	}
+
 	node, err := libp2p.New(
 		libp2p.ListenAddrStrings(listenAddr),
-		libp2p.
+		libp2p.Identity(pk),
 	)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	peerInfo := peerstore.AddrInfo{

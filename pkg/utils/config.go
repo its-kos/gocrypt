@@ -21,8 +21,8 @@ func SetupConfig() (*Config, error) {
 
 	keyDir := filepath.Join(homeDir, ".gocrypt", "node")
 	DHTPath := filepath.Join(homeDir, ".gocrypt", "DHT")
-	pubPath := filepath.Join(keyDir, "pb.key")
-	privPath := filepath.Join(keyDir, "pk.key")
+	pubPath := filepath.Join(keyDir, "PB")
+	privPath := filepath.Join(keyDir, "PK")
 
 	conf.homeDir = homeDir
 	conf.DHTDir = DHTPath
@@ -35,33 +35,35 @@ func SetupConfig() (*Config, error) {
 			return conf, err
 		}
 		log.Println("Directory created:", keyDir)
+		os.WriteFile(DHTPath, nil, 0644)
+
+		privKey, pubKey, err := crypto.GenerateKeyPair(crypto.RSA, 2048)
+		if err != nil {
+			return conf, err
+		}
+
+		marsPB, err := crypto.MarshalPublicKey(pubKey)
+		if err != nil {
+			return conf, err
+		}
+		os.WriteFile(pubPath, marsPB, 0644)
+
+		marsPK, err := crypto.MarshalPrivateKey(privKey)
+		if err != nil {
+			return conf, err
+		}
+		err = os.WriteFile(privPath, marsPK, 0644)
+		if err != nil {
+			return conf, err
+		}
+
+		conf.Init = true
+		fmt.Print("Successfully created config files!\n")
+
+	} else {
+		fmt.Print("Config already exists. Starting node from config!\n")
 	}
 
-	os.WriteFile(DHTPath, nil, 0644)
-
-	privKey, pubKey, err := crypto.GenerateKeyPair(crypto.RSA, 2048)
-	if err != nil {
-		return conf, err
-	}
-
-	marsPB, err := crypto.MarshalPublicKey(pubKey)
-	if err != nil {
-		return conf, err
-	}
-	os.WriteFile(pubPath, marsPB, 0644)
-
-	marsPK, err := crypto.MarshalPrivateKey(privKey)
-	if err != nil {
-		return conf, err
-	}
-	err = os.WriteFile(privPath, marsPK, 0644)
-	if err != nil {
-		return conf, err
-	}
-
-	conf.Init = true
-
-	fmt.Print("Successfully created config files!\n")
 	return conf, nil
 }
 
@@ -106,8 +108,8 @@ func UpdateKeys(conf Config, pk crypto.PrivKey, pb crypto.PubKey) error {
 }
 
 func ReadKeys(conf Config) (crypto.PubKey, crypto.PrivKey, error) {
-	pubPath := filepath.Join(conf.KeyDir, "pb.key")
-	privPath := filepath.Join(conf.KeyDir, "pk.key")
+	pubPath := filepath.Join(conf.KeyDir, "PB")
+	privPath := filepath.Join(conf.KeyDir, "PK")
 
 	marPB, err := os.ReadFile(pubPath)
 	if err != nil {
