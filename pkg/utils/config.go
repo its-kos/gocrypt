@@ -2,7 +2,6 @@ package utils
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -34,7 +33,6 @@ func SetupConfig() (*Config, error) {
 		if err != nil {
 			return conf, err
 		}
-		log.Println("Directory created:", keyDir)
 		os.WriteFile(DHTPath, nil, 0644)
 
 		privKey, pubKey, err := crypto.GenerateKeyPair(crypto.RSA, 2048)
@@ -61,7 +59,7 @@ func SetupConfig() (*Config, error) {
 		fmt.Print("Successfully created config files!\n")
 
 	} else {
-		fmt.Print("Config already exists. Starting node from config!\n")
+		fmt.Print("Config already exists. Starting node from config...\n")
 	}
 
 	return conf, nil

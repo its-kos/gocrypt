@@ -10,11 +10,11 @@ import (
 
 func main() {
 
-	//filePath := "./files/testfile.txt"
-	//chunkSize := 1024 // 1 KB chunks
-	//var wg sync.WaitGroup
-	//ctx, cancel := context.WithCancel(context.Background())
-	//defer cancel()
+	// filePath := "./files/testfile.txt"
+	// chunkSize := 1024 // 1 KB chunks
+	// var wg sync.WaitGroup
+	// ctx, cancel := context.WithCancel(context.Background())
+	// defer cancel()
 
 	conf, err := utils.SetupConfig()
 	if err != nil {
@@ -25,7 +25,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error creating Host node: %v\n", err)
 	}
-	fmt.Printf("Successfully initialized host from config: %v", host.ID().ShortString())
+	fmt.Printf("Successfully initialized host: %v", host.ID().ShortString())
 
 	// sigs := make(chan os.Signal, 1) // Buffered cause we don't wanna block, only 1 SIG is enough.
 	// signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
