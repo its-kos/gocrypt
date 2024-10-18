@@ -88,8 +88,7 @@ func main() {
 
 	c := &config{}
 
-	// flag.StringVar(&c.RendezvousString, "rendezvous", "meetme", "Unique string to identify group of nodes. Share this with your friends to let them connect with you")
-	// flag.StringVar(&c.listenHost, "host", "0.0.0.0", "The bootstrap node host listen address\n")
+	flag.StringVar(&c.listenHost, "host", "", "whatever")
 	flag.IntVar(&c.listenPort, "port", 0, "node listen port (0 pick a random unused port)")
 	flag.Parse()
 
@@ -101,7 +100,7 @@ func main() {
 		log.Fatalf("Error creating config files: %v\n", err)
 	}
 
-	host, err := network.StartNode(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", c.listenPort), *conf)
+	host, err := network.StartNode(fmt.Sprintf("/ip4/%s/tcp/%d", c.listenHost, c.listenPort), *conf)
 	if err != nil {
 		log.Fatalf("Error creating Host node: %v\n", err)
 	}

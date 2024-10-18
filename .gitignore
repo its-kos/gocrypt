@@ -29,3 +29,5 @@ files
 
 # Binary
 gocrypt
+
+.DS_Store
