@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"crypto/rand"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -19,21 +20,28 @@ func SetupConfig() (*Config, error) {
 	}
 
 	keyDir := filepath.Join(homeDir, ".gocrypt", "node")
-	DHTPath := filepath.Join(homeDir, ".gocrypt", "DHT")
+	ConfPath := filepath.Join(homeDir, ".gocrypt", "CONF")
 	pubPath := filepath.Join(keyDir, "PB")
 	privPath := filepath.Join(keyDir, "PK")
 
 	conf.homeDir = homeDir
-	conf.DHTDir = DHTPath
+	conf.ConfDir = ConfPath
 	conf.KeyDir = keyDir
 
 	_, err = os.Stat(keyDir)
 	if os.IsNotExist(err) {
+
 		err = os.MkdirAll(keyDir, 0755)
 		if err != nil {
 			return conf, err
 		}
-		os.WriteFile(DHTPath, nil, 0644)
+
+		key := make([]byte, 32)
+		_, err = rand.Reader.Read(key)
+		if err != nil {
+			return conf, err
+		}
+		os.WriteFile(ConfPath, key, 0644)
 
 		privKey, pubKey, err := crypto.GenerateKeyPair(crypto.RSA, 2048)
 		if err != nil {
@@ -105,29 +113,35 @@ func UpdateKeys(conf Config, pk crypto.PrivKey, pb crypto.PubKey) error {
 	return nil
 }
 
-func ReadKeys(conf Config) (crypto.PubKey, crypto.PrivKey, error) {
+func ReadKeys(conf *Config) (crypto.PubKey, crypto.PrivKey, []byte, error) {
 	pubPath := filepath.Join(conf.KeyDir, "PB")
 	privPath := filepath.Join(conf.KeyDir, "PK")
+	ciphPath := filepath.Join(conf.ConfDir, "CONF")
+
+	ciphKey, err := os.ReadFile(ciphPath)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
 	marPB, err := os.ReadFile(pubPath)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	marPK, err := os.ReadFile(privPath)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	pb, err := crypto.UnmarshalPublicKey(marPB)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	pk, err := crypto.UnmarshalPrivateKey(marPK)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return pb, pk, nil
+	return pb, pk, ciphKey, nil
 }

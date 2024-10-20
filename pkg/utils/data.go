@@ -3,6 +3,6 @@ package utils
 type Config struct {
 	Init    bool
 	homeDir string
-	DHTDir  string
+	ConfDir string
 	KeyDir  string
 }

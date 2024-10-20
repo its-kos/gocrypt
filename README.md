@@ -78,22 +78,20 @@ The original scope for this is to be used for a P2P network of nodes in the same
 
 ### Prerequisites
 
-Just have Go installed.
+Go 1.23+ is required in order to build the project.
 
 ### Installation
 
-1. TODO
-2. TODO
-3. TODO
-4. TODO
-5. TODO
+1. `go build .` in the project directory
+2. Make a "files/testfile.ext" directory. The fletype can be whatever.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-TODO
+1. `./gocrypt -host <local-network-ip> -port <free-tcp-port>` on two different terminals.
+2. (For now the test file you input is automatically chunked and uploaded)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -102,7 +100,7 @@ TODO
 
 - [x] Basic chunking functionality
 - [x] Basic encrypting functionality
-- [ ] libp2p local network setup
+- [x] libp2p local network setup
 - [ ] finish documentation
 - [ ] cli implementation
     - [x] basic boilerplate / scaffolding

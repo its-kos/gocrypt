@@ -2,10 +2,8 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 
 	"github.com/its-kos/gocrypt/pkg/encryption"
@@ -13,39 +11,8 @@ import (
 	"github.com/its-kos/gocrypt/pkg/network"
 	"github.com/its-kos/gocrypt/pkg/utils"
 
-	libnet "github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/protocol"
 )
-
-func handleStream(stream libnet.Stream) {
-	buf := make([]byte, 1024)
-	for {
-		n, err := stream.Read(buf)
-		if err != nil {
-			if err != io.EOF {
-				fmt.Println("Error reading from stream:", err)
-			}
-			break
-		}
-		fmt.Printf("Received %d bytes: %v\n", n, buf[:n])
-	}
-
-	decrypted := make([][]byte, 0)
-	for _, encChunk := range buf {
-		decryptedChunk, err := encryption.DecryptChunk(encChunk, key)
-		if err != nil {
-			log.Fatalf("Error decrypting chunk: %v", err)
-		}
-		decrypted = append(decrypted, decryptedChunk)
-	}
-
-	err := filechunk.StitchFile(decrypted, "./files/testfile_reconstructed.txt")
-	if err != nil {
-		log.Fatalf("Error splitting file: %v", err)
-	}
-
-	stream.Close()
-}
 
 type config struct {
 	listenHost string
@@ -54,7 +21,7 @@ type config struct {
 
 func main() {
 
-	filePath := "./files/testfile.txt"
+	filePath := "./files/testfile.jpg"
 	chunkSize := 1024 // 1 KB chunks
 
 	c := &config{}
@@ -77,17 +44,16 @@ func main() {
 	}
 	fmt.Printf("Successfully initialized host: %v", host.ID().ShortString())
 
-	host.SetStreamHandler(protocol.ID("/gocrypt/chunk-transfer/1.0.0"), handleStream)
-
-	key := make([]byte, 32)
-	_, err = rand.Reader.Read(key)
-	if err != nil {
-		log.Fatalf("Error generating random key: %v", err)
-	}
+	host.SetStreamHandler(protocol.ID("/gocrypt/chunk-transfer/1.0.0"), network.HandleChunkStream)
 
 	chunks, err := filechunk.ChunkFile(filePath, chunkSize)
 	if err != nil {
 		log.Fatalf("Error splitting file: %v", err)
+	}
+
+	_, _, key, err := utils.ReadKeys(conf)
+	if err != nil {
+		log.Fatalf("Error generating cipher key: %v", err)
 	}
 
 	encrypted := make([][]byte, 0)
@@ -115,7 +81,6 @@ func main() {
 			continue
 		}
 
-		// open a stream, this stream will be handled by handleStream other end
 		stream, err := host.NewStream(ctx, peer.ID, protocol.ID("/gocrypt/chunk-transfer/1.0.0"))
 		if err != nil {
 			fmt.Println("Stream open failed", err)
@@ -126,8 +91,7 @@ func main() {
 			stream.Close()
 		}
 	}
-
-	// wg.Wait()
+	
 	// The functionality is stupid but i'm doing it for
 	// ease of development. Right now each node stores their
 	// PK and uses it to regenerate the same Node ID upon
