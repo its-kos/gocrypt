@@ -87,11 +87,13 @@ func main() {
 		} else {
 			fmt.Println("Connected to:", peer)
 
-			stream.Write(encrypted[0])
+			for _, b := range encrypted {
+				stream.Write(b)
+			}
 			stream.Close()
 		}
 	}
-	
+
 	// The functionality is stupid but i'm doing it for
 	// ease of development. Right now each node stores their
 	// PK and uses it to regenerate the same Node ID upon

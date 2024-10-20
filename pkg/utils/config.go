@@ -116,7 +116,7 @@ func UpdateKeys(conf Config, pk crypto.PrivKey, pb crypto.PubKey) error {
 func ReadKeys(conf *Config) (crypto.PubKey, crypto.PrivKey, []byte, error) {
 	pubPath := filepath.Join(conf.KeyDir, "PB")
 	privPath := filepath.Join(conf.KeyDir, "PK")
-	ciphPath := filepath.Join(conf.ConfDir, "CONF")
+	ciphPath := conf.ConfDir
 
 	ciphKey, err := os.ReadFile(ciphPath)
 	if err != nil {

@@ -30,8 +30,6 @@ func StartNode(listenAddr string, conf utils.Config) (host.Host, error) {
 	if err != nil {
 		return nil, err
 	}
-	// fmt.Println("Host node address:", addrs[0])
-	// fmt.Println("Host node ID:", node.ID())
 
 	return node, nil
 }
