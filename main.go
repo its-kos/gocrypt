@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"flag"
 	"fmt"
 	"log"
+	"os"
+	"strconv"
 
 	"github.com/its-kos/gocrypt/pkg/encryption"
 	"github.com/its-kos/gocrypt/pkg/filechunk"
@@ -12,6 +15,7 @@ import (
 	"github.com/its-kos/gocrypt/pkg/utils"
 
 	"github.com/libp2p/go-libp2p/core/protocol"
+	"github.com/urfave/cli/v2"
 )
 
 type config struct {
@@ -20,6 +24,134 @@ type config struct {
 }
 
 func main() {
+
+	app := &cli.App{
+		Name:  "GoCrypt",
+		Usage: "A P2P file encryption tool",
+		Commands: []*cli.Command{
+			{
+				Name:    "setup",
+				Aliases: []string{"s"},
+				Usage:   "Setup host for local node",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "addr",
+						Aliases: []string{"a"},
+						Value:   "/ip4/127.0.0.1/tcp/0",
+						Usage:   "Address for host to listen to",
+					},
+				},
+				Action: func(cCtx *cli.Context) error {
+					fmt.Println("Setting up host in here...", cCtx.Args().First())
+					_, err := network.StartNode(cCtx.String("addr"))
+					if err != nil {
+						log.Fatalf("Error creating host: %v\n", err)
+					}
+					return nil
+				},
+			},
+			{
+				Name:    "upload",
+				Aliases: []string{"u"},
+				Usage:   "Upload file to Gocrypt network",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:        "path",
+						Aliases:     []string{"p"},
+						Usage:       "Path of the file to upload",
+						Destination: &filePath,
+						Required:    true,
+					},
+					&cli.StringFlag{
+						Name:        "chunk",
+						Aliases:     []string{"c"},
+						Value:       "1024", // We default to 1 KB
+						Usage:       "Chunksize for file splitting",
+						Destination: &chunkSize,
+						Required:    false,
+					},
+				},
+				Action: func(cCtx *cli.Context) error {
+					chunkSize, err := strconv.Atoi(chunkSize)
+					if err != nil {
+						return fmt.Errorf("invalid chunk size: %v", err)
+					}
+
+					fmt.Printf("Uploading file %v, split into %v byte chunks here...\n", filePath, chunkSize)
+
+					_, err = rand.Reader.Read(key)
+					if err != nil {
+						return fmt.Errorf("error generating random key: %v", err)
+					}
+
+					chunks, err := filechunk.ChunkFile(filePath, chunkSize)
+					if err != nil {
+						return fmt.Errorf("error splitting file: %v", err)
+					}
+
+					encrypted := make([][]byte, 0)
+					for _, chunk := range chunks {
+						encryptedChunk, err := encryption.EncryptChunk(chunk, key)
+						if err != nil {
+							return fmt.Errorf("error encrypting chunk: %v", err)
+						}
+						encrypted = append(encrypted, encryptedChunk)
+					}
+
+					return nil
+				},
+			},
+			{
+				Name:    "retrieve",
+				Aliases: []string{"r"},
+				Usage:   "Retrieve file from Gocrypt network",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:        "path",
+						Aliases:     []string{"p"},
+						Usage:       "Path of the save location of the file",
+						Destination: &filePath,
+						Required:    true,
+					},
+				},
+				Action: func(cCtx *cli.Context) error {
+					fmt.Println("Connecting to other nodes to get file chunks here...")
+					decrypted := make([][]byte, 0)
+					for _, encChunk := range encrypted {
+						decryptedChunk, err := encryption.DecryptChunk(encChunk, key)
+						if err != nil {
+							return fmt.Errorf("error decrypting chunk: %v", err)
+						}
+						decrypted = append(decrypted, decryptedChunk)
+					}
+
+					err := filechunk.StitchFile(decrypted, filePath)
+					if err != nil {
+						return fmt.Errorf("error splitting file: %v", err)
+					}
+					fmt.Println("Retrieving file in here...")
+					return nil
+				},
+			},
+			{
+				Name:    "list",
+				Aliases: []string{"l"},
+				Usage:   "List all running nodes of the Gocrypt network",
+				Action: func(cCtx *cli.Context) error {
+					fmt.Println("Listing nodes in here...")
+					return nil
+				},
+			},
+		},
+		CommandNotFound: func(c *cli.Context, command string) {
+			fmt.Printf("Unrecognized command: '%s'\n\n", command)
+			cli.ShowAppHelp(c)
+		},
+	}
+
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err)
+	}
 
 	filePath := "./files/testfile.jpg"
 	chunkSize := 1024 // 1 KB chunks
@@ -60,7 +192,7 @@ func main() {
 	for _, chunk := range chunks {
 		encryptedChunk, err := encryption.EncryptChunk(chunk, key)
 		if err != nil {
-			log.Fatalf("Error encrypting chunk: %v", err)
+			return fmt.Errorf("error encrypting chunk: %v", err)
 		}
 		encrypted = append(encrypted, encryptedChunk)
 	}
