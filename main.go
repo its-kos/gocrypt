@@ -154,10 +154,19 @@ func main() {
 	// ctx, cancel := context.WithCancel(context.Background())
 	// defer cancel()
 
+<<<<<<< Updated upstream
 	// host, err := network.StartNode("/ip4/127.0.0.1/tcp/0")
 	// if err != nil {
 	// 	log.Fatalf("Error creating Host node: %v\n", err)
 	// }
+=======
+	// This block is for testing purposes and should be removed at some point
+	err = filechunk.StitchFile(encrypted, "./files/testfile_encrypted.txt")
+	if err != nil {
+		log.Fatalf("Error splitting file: %v", err)
+	}
+	//
+>>>>>>> Stashed changes
 
 	// sigs := make(chan os.Signal, 1) // Buffered cause we don't wanna block, only 1 SIG is enough.
 	// signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)

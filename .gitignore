@@ -29,3 +29,5 @@ files
 
 # Output binary
 gocrypt
+
+.DS_Store
