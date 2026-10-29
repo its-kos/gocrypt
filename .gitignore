@@ -23,11 +23,18 @@ go.work.sum
 
 # env file
 .env
+.env.local
 
 # Test files folder
 files
 
-# Output binary
-gocrypt
+# Output binary (anchored to the repo root so it doesn't match cmd/gocrypt/)
+/gocrypt
 
 .DS_Store
+
+# AI assistant knowledge base and skills (local only)
+AGENTS.md
+CLAUDE.md
+docs/knowledge/
+.claude/
