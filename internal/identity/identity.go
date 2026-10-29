@@ -19,17 +19,18 @@ import (
 // Argon2id settings for turning a passphrase into an encryption key.
 // Changing any of these makes existing encrypted keys unreadable.
 const (
-	hashTime      = 3
-	hashMemory    = 64 * 1024 // KiB, so 64 MiB
-	hashThreads   = 4
-	hashKeyLength = 32 // Bytes, for AES-256
-	saltLength    = 16 // Bytes
+	argonTime      = 3
+	argonMemory    = 64 * 1024 // KiB, so 64 MiB
+	argonThreads   = 4
+	argonKeyLength = 32 // Bytes, for AES-256
+	saltLength     = 16 // Bytes
 )
 
 // PEM block types written by Marshal.
 const (
 	pemType          = "PRIVATE KEY"                   // Standard PKCS#8, readable by other tools
 	pemEncryptedType = "GOCRYPT ENCRYPTED PRIVATE KEY" // Custom format, only readable by this package
+	saltHeader       = "Salt"                          // Const just cause its cleaner
 )
 
 // Identity is a node's long-term signing keypair.
@@ -113,7 +114,7 @@ func Marshal(id *Identity, passphrase []byte) ([]byte, error) {
 	// secret, so it is stored in plain text.
 	return pem.EncodeToMemory(&pem.Block{
 		Type:    pemEncryptedType,
-		Headers: map[string]string{"Salt": base64.StdEncoding.EncodeToString(salt)},
+		Headers: map[string]string{saltHeader: base64.StdEncoding.EncodeToString(salt)},
 		Bytes:   encryptedKey,
 	}), nil
 }
@@ -138,7 +139,7 @@ func Unmarshal(data []byte, passphrase func() ([]byte, error)) (*Identity, error
 	case pemEncryptedType:
 		// Validate the file before asking for a passphrase, so a broken file
 		// fails right away instead of after the user types it.
-		salt, err := base64.StdEncoding.DecodeString(block.Headers["Salt"])
+		salt, err := base64.StdEncoding.DecodeString(block.Headers[saltHeader])
 		if err != nil {
 			return nil, fmt.Errorf("unmarshal identity: decode salt: %w", err)
 		}
@@ -191,5 +192,5 @@ func IsEncrypted(data []byte) bool {
 
 // deriveKey turns a passphrase and salt into an AES-256 key using Argon2id.
 func deriveKey(passphrase, salt []byte) []byte {
-	return argon2.IDKey(passphrase, salt, hashTime, hashMemory, hashThreads, hashKeyLength)
+	return argon2.IDKey(passphrase, salt, argonTime, argonMemory, argonThreads, argonKeyLength)
 }

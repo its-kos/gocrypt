@@ -7,6 +7,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"strings"
@@ -270,7 +271,7 @@ func TestMarshalEncryptedFormat(t *testing.T) {
 	if block.Type != pemEncryptedType {
 		t.Fatalf("PEM type = %q, want %q", block.Type, pemEncryptedType)
 	}
-	if block.Headers["Salt"] == "" {
+	if block.Headers[saltHeader] == "" {
 		t.Fatal("encrypted key has no Salt header")
 	}
 
@@ -289,7 +290,7 @@ func TestMarshalEncryptedIsRandomized(t *testing.T) {
 	a := mustDecodePEM(t, mustMarshal(t, id, testPassphrase))
 	b := mustDecodePEM(t, mustMarshal(t, id, testPassphrase))
 
-	if a.Headers["Salt"] == b.Headers["Salt"] {
+	if a.Headers[saltHeader] == b.Headers[saltHeader] {
 		t.Fatal("two encrypted outputs use the same salt")
 	}
 	if bytes.Equal(a.Bytes, b.Bytes) {
@@ -388,7 +389,7 @@ func TestUnmarshalInvalid(t *testing.T) {
 	withSalt := func(salt string) []byte {
 		return pem.EncodeToMemory(&pem.Block{
 			Type:    pemEncryptedType,
-			Headers: map[string]string{"Salt": salt},
+			Headers: map[string]string{saltHeader: salt},
 			Bytes:   encrypted.Bytes,
 		})
 	}
@@ -436,5 +437,22 @@ func TestIsEncrypted(t *testing.T) {
 				t.Fatalf("IsEncrypted() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+// --- Argon2id settings ---
+
+// TestDeriveKeyKnownValue pins the Argon2id settings. Changing any of them
+// makes every existing encrypted identity.key unreadable, so the change must
+// fail a test instead of passing silently.
+func TestDeriveKeyKnownValue(t *testing.T) {
+	salt := make([]byte, saltLength)
+	for i := range salt {
+		salt[i] = byte(i)
+	}
+	const want = "8eb345c7823aa06ab0bab02a1b7138f6f30610b6c50f74d79c4fd9c777ed4b33"
+	if got := hex.EncodeToString(deriveKey([]byte("test"), salt)); got != want {
+		t.Fatalf("deriveKey() = %s, want %s\n"+
+			"The Argon2id settings changed. Existing encrypted keys would no longer open.", got, want)
 	}
 }
