@@ -2,9 +2,13 @@ package identity
 
 import (
 	"bytes"
+	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"strings"
 	"testing"
 )
@@ -218,5 +222,219 @@ func TestMarshalPlainDeterministic(t *testing.T) {
 	}
 	if !bytes.Equal(a, b) {
 		t.Fatal("plain Marshal output differs between calls")
+	}
+}
+
+// --- Step 5: Marshal (encrypted) ---
+
+const testPassphrase = "correct horse battery staple"
+
+// passphraseFunc returns a passphrase callback that always gives p.
+func passphraseFunc(p string) func() ([]byte, error) {
+	return func() ([]byte, error) { return []byte(p), nil }
+}
+
+// mustNotBeCalled returns a passphrase callback that fails the test if used.
+func mustNotBeCalled(t *testing.T) func() ([]byte, error) {
+	t.Helper()
+	return func() ([]byte, error) {
+		t.Fatal("passphrase callback was called, but it should not be")
+		return nil, nil
+	}
+}
+
+// mustMarshal marshals id or stops the test.
+func mustMarshal(t *testing.T, id *Identity, passphrase string) []byte {
+	t.Helper()
+	data, err := Marshal(id, []byte(passphrase))
+	if err != nil {
+		t.Fatalf("Marshal() error: %v", err)
+	}
+	return data
+}
+
+// mustDecodePEM decodes a single PEM block or stops the test.
+func mustDecodePEM(t *testing.T, data []byte) *pem.Block {
+	t.Helper()
+	block, _ := pem.Decode(data)
+	if block == nil {
+		t.Fatal("output is not PEM")
+	}
+	return block
+}
+
+func TestMarshalEncryptedFormat(t *testing.T) {
+	id := knownIdentity()
+	block := mustDecodePEM(t, mustMarshal(t, id, testPassphrase))
+
+	if block.Type != pemEncryptedType {
+		t.Fatalf("PEM type = %q, want %q", block.Type, pemEncryptedType)
+	}
+	if block.Headers["Salt"] == "" {
+		t.Fatal("encrypted key has no Salt header")
+	}
+
+	// The private key must not appear in readable form.
+	der, err := x509.MarshalPKCS8PrivateKey(id.priv)
+	if err != nil {
+		t.Fatalf("MarshalPKCS8PrivateKey() error: %v", err)
+	}
+	if bytes.Contains(block.Bytes, id.priv.Seed()) || bytes.Contains(block.Bytes, der) {
+		t.Fatal("encrypted output contains the private key in readable form")
+	}
+}
+
+func TestMarshalEncryptedIsRandomized(t *testing.T) {
+	id := mustGenerate(t)
+	a := mustDecodePEM(t, mustMarshal(t, id, testPassphrase))
+	b := mustDecodePEM(t, mustMarshal(t, id, testPassphrase))
+
+	if a.Headers["Salt"] == b.Headers["Salt"] {
+		t.Fatal("two encrypted outputs use the same salt")
+	}
+	if bytes.Equal(a.Bytes, b.Bytes) {
+		t.Fatal("two encrypted outputs have the same body")
+	}
+}
+
+// --- Step 6: Unmarshal ---
+
+func TestUnmarshalPlainKnownValue(t *testing.T) {
+	id, err := Unmarshal([]byte(knownPlainPEM), mustNotBeCalled(t))
+	if err != nil {
+		t.Fatalf("Unmarshal() error: %v", err)
+	}
+	if got := id.NodeID(); got != knownNodeID {
+		t.Fatalf("NodeID() = %q, want %q", got, knownNodeID)
+	}
+}
+
+func TestUnmarshalRoundTrip(t *testing.T) {
+	tests := []struct {
+		name       string
+		passphrase string
+	}{
+		{"plain", ""},
+		{"encrypted", testPassphrase},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			id := mustGenerate(t)
+			got, err := Unmarshal(mustMarshal(t, id, tt.passphrase), passphraseFunc(tt.passphrase))
+			if err != nil {
+				t.Fatalf("Unmarshal() error: %v", err)
+			}
+			if !got.priv.Equal(id.priv) {
+				t.Fatal("Unmarshal did not return the original key")
+			}
+		})
+	}
+}
+
+func TestUnmarshalPlainSkipsPassphrase(t *testing.T) {
+	data := mustMarshal(t, mustGenerate(t), "")
+	if _, err := Unmarshal(data, mustNotBeCalled(t)); err != nil {
+		t.Fatalf("Unmarshal() error: %v", err)
+	}
+	if _, err := Unmarshal(data, nil); err != nil {
+		t.Fatalf("Unmarshal() with nil callback error: %v", err)
+	}
+}
+
+func TestUnmarshalWrongPassphrase(t *testing.T) {
+	data := mustMarshal(t, mustGenerate(t), testPassphrase)
+	_, err := Unmarshal(data, passphraseFunc("wrong"))
+	if !errors.Is(err, ErrWrongPassphrase) {
+		t.Fatalf("Unmarshal() error = %v, want ErrWrongPassphrase", err)
+	}
+}
+
+func TestUnmarshalEncryptedNeedsPassphrase(t *testing.T) {
+	data := mustMarshal(t, mustGenerate(t), testPassphrase)
+	if _, err := Unmarshal(data, nil); err == nil {
+		t.Fatal("Unmarshal() of a encrypted key with nil callback succeeded, want error")
+	}
+}
+
+func TestUnmarshalPassphraseError(t *testing.T) {
+	data := mustMarshal(t, mustGenerate(t), testPassphrase)
+	errCancelled := errors.New("user cancelled")
+	_, err := Unmarshal(data, func() ([]byte, error) { return nil, errCancelled })
+	if !errors.Is(err, errCancelled) {
+		t.Fatalf("Unmarshal() error = %v, want it to wrap %v", err, errCancelled)
+	}
+}
+
+func TestUnmarshalTampered(t *testing.T) {
+	block := mustDecodePEM(t, mustMarshal(t, mustGenerate(t), testPassphrase))
+	block.Bytes[len(block.Bytes)-1] ^= 0xff
+
+	if _, err := Unmarshal(pem.EncodeToMemory(block), passphraseFunc(testPassphrase)); err == nil {
+		t.Fatal("Unmarshal() of a tampered key succeeded, want error")
+	}
+}
+
+func TestUnmarshalInvalid(t *testing.T) {
+	ecKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("ecdsa.GenerateKey() error: %v", err)
+	}
+	ecDER, err := x509.MarshalPKCS8PrivateKey(ecKey)
+	if err != nil {
+		t.Fatalf("MarshalPKCS8PrivateKey() error: %v", err)
+	}
+
+	encrypted := mustDecodePEM(t, mustMarshal(t, mustGenerate(t), testPassphrase))
+	withSalt := func(salt string) []byte {
+		return pem.EncodeToMemory(&pem.Block{
+			Type:    pemEncryptedType,
+			Headers: map[string]string{"Salt": salt},
+			Bytes:   encrypted.Bytes,
+		})
+	}
+
+	// None of these should get far enough to ask for a passphrase.
+	tests := []struct {
+		name string
+		data []byte
+	}{
+		{"empty", nil},
+		{"not PEM", []byte("hello")},
+		{"unknown PEM type", pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: []byte{1, 2, 3}})},
+		{"plain with garbage body", pem.EncodeToMemory(&pem.Block{Type: pemType, Bytes: []byte{1, 2, 3}})},
+		{"plain non-ed25519 key", pem.EncodeToMemory(&pem.Block{Type: pemType, Bytes: ecDER})},
+		{"encrypted without salt", pem.EncodeToMemory(&pem.Block{Type: pemEncryptedType, Bytes: encrypted.Bytes})},
+		{"encrypted with invalid base64 salt", withSalt("!!!not base64!!!")},
+		{"encrypted with short salt", withSalt("AAAA")},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, err := Unmarshal(tt.data, mustNotBeCalled(t)); err == nil {
+				t.Fatal("Unmarshal() succeeded, want error")
+			}
+		})
+	}
+}
+
+// --- Step 7: IsEncrypted ---
+
+func TestIsEncrypted(t *testing.T) {
+	id := mustGenerate(t)
+	tests := []struct {
+		name string
+		data []byte
+		want bool
+	}{
+		{"encrypted", mustMarshal(t, id, testPassphrase), true},
+		{"plain", mustMarshal(t, id, ""), false},
+		{"not PEM", []byte("hello"), false},
+		{"empty", nil, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsEncrypted(tt.data); got != tt.want {
+				t.Fatalf("IsEncrypted() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

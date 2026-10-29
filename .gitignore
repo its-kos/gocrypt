@@ -33,6 +33,9 @@ files
 
 .DS_Store
 
+# Editor settings (GoLand / IntelliJ)
+.idea/
+
 # AI assistant knowledge base and skills (local only)
 AGENTS.md
 CLAUDE.md
