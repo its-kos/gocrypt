@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -436,5 +437,22 @@ func TestIsEncrypted(t *testing.T) {
 				t.Fatalf("IsEncrypted() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+// --- Step 8: Printing ---
+
+func TestPrintingHidesPrivateKey(t *testing.T) {
+	id := knownIdentity()
+
+	// Requiring the exact node ID is stricter than searching the output for key
+	// bytes, which can appear in many forms depending on the verb.
+	for _, verb := range []string{"%v", "%+v", "%#v", "%s", "%d", "%x", "%q"} {
+		for name, value := range map[string]any{"pointer": id, "value": *id} {
+			out := fmt.Sprintf(verb, value)
+			if out != knownNodeID {
+				t.Fatalf("Sprintf(%q, %s) = %q, want the node ID %q", verb, name, out, knownNodeID)
+			}
+		}
 	}
 }

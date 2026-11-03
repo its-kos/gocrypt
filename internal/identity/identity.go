@@ -10,6 +10,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/its-kos/gocrypt/internal/encryptor"
@@ -54,13 +55,13 @@ func Generate() (*Identity, error) {
 }
 
 // PublicKey returns a copy of the public key derived from the identity.
-func (id *Identity) PublicKey() ed25519.PublicKey {
+func (id Identity) PublicKey() ed25519.PublicKey {
 	// crypto.PublicKey must be asserted to ed25519
 	return id.priv.Public().(ed25519.PublicKey)
 }
 
 // NodeID returns the node's ID: its public key in lowercase, unpadded base32 (52 chars).
-func (id *Identity) NodeID() string {
+func (id Identity) NodeID() string {
 	return nodeIDEncoding.EncodeToString(id.PublicKey())
 }
 
@@ -192,4 +193,15 @@ func IsEncrypted(data []byte) bool {
 // deriveKey turns a passphrase and salt into an AES-256 key using Argon2id.
 func deriveKey(passphrase, salt []byte) []byte {
 	return argon2.IDKey(passphrase, salt, hashTime, hashMemory, hashThreads, hashKeyLength)
+}
+
+// String returns the node ID, so printing an identity never shows the private key.
+func (id Identity) String() string {
+	return id.NodeID()
+}
+
+// Format implements fmt.Formatter. fmt calls it for every verb (%v, %#v, %d,
+// ...) instead of printing the struct fields, which would include the private key.
+func (id Identity) Format(f fmt.State, _ rune) {
+	_, _ = io.WriteString(f, id.String())
 }
