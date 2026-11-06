@@ -44,7 +44,7 @@ This describes the intended design. Most of it is not built yet.
 
 - [x] Node identity: key generation, node IDs, key file format with optional passphrase
 - [x] Encryption, compression and chunking building blocks
-- [ ] `gocrypt init`: local node setup (in progress)
+- [x] `gocrypt init`: local node setup
 - [ ] Pairing nodes into a network
 - [ ] Node service
 - [ ] Storing and restoring files
@@ -69,17 +69,26 @@ go build -o gocrypt ./cmd/gocrypt
 
 ## Usage
 
-`gocrypt init` is being built. Once finished it will work like this:
+### Set up a node
 
 ```sh
-gocrypt init                            # set up this machine as a node
-gocrypt init --name homelab             # pick a node name (default: hostname)
-gocrypt init --storage-path /mnt/data   # keep stored data on another disk
-gocrypt init --encrypt-key              # protect the node key with a passphrase
+gocrypt init                                  # set up this machine as a node
+gocrypt init --name homelab                   # pick a node name (default: hostname)
+gocrypt init --storage-path /mnt/data/gocrypt # keep stored data on another disk
+gocrypt init --encrypt-key                    # protect the node key with a passphrase
+```
+
+```
+$ gocrypt init --name homelab
+Initialized GoCrypt node in /home/you/.gocrypt
+  Name:     homelab
+  Node ID:  wesqvi2qlr3arybdtuo3zzwy23whfgppdcxazy3w4fkngvdycx3a
+  Storage:  /home/you/.gocrypt/storage
 ```
 
 Running `init` again on a machine that is already set up changes nothing and
-prints the node's details.
+prints the node's details, so it is safe to run in scripts and container
+start-up commands.
 
 By default a node lives in `~/.gocrypt`:
 
@@ -91,7 +100,15 @@ By default a node lives in `~/.gocrypt`:
 ```
 
 Use `--home` or the `GOCRYPT_HOME` environment variable to put it somewhere
-else, for example to run several test nodes on one machine.
+else, for example to run several test nodes on one machine, or `/data` in a
+container.
+
+With `--encrypt-key`, `init` asks for a passphrase in the terminal. Without a
+terminal, give it a file instead with `--passphrase-file` or
+`GOCRYPT_PASSPHRASE_FILE` (for example a Docker secret). The passphrase is
+never accepted on the command line itself. An encrypted key needs the
+passphrase every time the node starts, so leave it off for machines that
+should start unattended.
 
 More commands will be documented here as they are added.
 
