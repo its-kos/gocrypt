@@ -10,11 +10,13 @@ import (
 	"unicode/utf8"
 
 	"github.com/BurntSushi/toml"
+
 	"github.com/its-kos/gocrypt/internal/identity"
 )
 
 const (
 	// CurrentFormatVersion is the config layout this version of GoCrypt reads and writes.
+	// Any change to the file's layout or meaning should raise CurrentFormatVersion by one.
 	CurrentFormatVersion = 1
 
 	// MaxNameLength is the longest allowed node name, in characters (not bytes).
