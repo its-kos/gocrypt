@@ -8,34 +8,35 @@ import (
 	"path/filepath"
 
 	"github.com/its-kos/gocrypt/internal/config"
+	"github.com/its-kos/gocrypt/internal/identity"
 )
 
-// File and folder names inside a node's folder.
+// Files inside a node's folder.
 const (
 	configFileName    = "config.toml"
 	keyFileName       = "identity.key"
-	defaultStorageDir = "storage" // default storage path, relative to the node's folder
+	defaultStorageDir = "storage"
 )
 
-// ErrNotInitialized is returned by Load when the folder holds no GoCrypt node.
-var ErrNotInitialized = errors.New("not a GoCrypt node")
+var (
+	// ErrNotInitialized means the folder holds no GoCrypt node.
+	ErrNotInitialized = errors.New("not a GoCrypt node")
+
+	// ErrKeyMismatch means identity.key and config.toml belong to different nodes.
+	ErrKeyMismatch = errors.New("identity.key does not belong to this node's config")
+)
 
 // Info describes an existing node.
 type Info struct {
-	Home        string         // the node's folder (absolute)
-	Config      *config.Config // the validated config.toml
+	Home        string         // the node's folder
+	Config      *config.Config // contents of config.toml
 	StoragePath string         // absolute path of the storage folder
 }
 
-// Load reads the node in home. It returns ErrNotInitialized only if there is
-// no config.toml there. A node that exists but is broken or unreadable gives
-// a different error, so callers never mistake it for an empty folder.
-//
-// Load does not read identity.key (that may need a passphrase), only checks
-// that it exists.
+// Load opens the node in home and reads its config. It returns
+// ErrNotInitialized only if there is no config.toml; a broken node gives a
+// different error. The key is not read here (it may need a passphrase).
 func Load(home string) (*Info, error) {
-	// A file where the folder should be would otherwise give a confusing
-	// "config.toml/config.toml: not a directory".
 	if fi, err := os.Stat(home); err == nil && !fi.IsDir() {
 		return nil, fmt.Errorf("load node: %s is not a folder", home)
 	}
@@ -49,22 +50,22 @@ func Load(home string) (*Info, error) {
 		return nil, fmt.Errorf("load node: %w", err)
 	}
 
-	// config doesn't know where the bytes came from, so add the path here.
 	cfg, err := config.Unmarshal(data)
 	if err != nil {
 		return nil, fmt.Errorf("load node: %s: %w", cfgPath, err)
 	}
 
 	keyPath := filepath.Join(home, keyFileName)
-	fi, err := os.Stat(keyPath)
-	if err != nil {
+	if fi, err := os.Stat(keyPath); err != nil {
 		return nil, fmt.Errorf("load node: %w", err)
-	}
-	if !fi.Mode().IsRegular() {
+	} else if !fi.Mode().IsRegular() {
 		return nil, fmt.Errorf("load node: %s is not a regular file", keyPath)
 	}
 
-	storage := resolveStorage(home, cfg.Storage.Path)
+	storage := cfg.Storage.Path
+	if !filepath.IsAbs(storage) {
+		storage = filepath.Join(home, storage) // relative to the node's folder (D11)
+	}
 	if err := checkStorageOutsideHome(home, storage); err != nil {
 		return nil, fmt.Errorf("load node: %w", err)
 	}
@@ -72,21 +73,39 @@ func Load(home string) (*Info, error) {
 	return &Info{Home: home, Config: cfg, StoragePath: storage}, nil
 }
 
-// resolveStorage turns the config's storage path into an absolute path.
-// Relative paths are relative to the node's folder (D11).
-func resolveStorage(home, path string) string {
-	if filepath.IsAbs(path) {
-		return path
+// LoadIdentity reads the node's key and checks that it belongs to this node's
+// config. passphrase is only called if the key is encrypted; it may be nil.
+func (info *Info) LoadIdentity(passphrase func() ([]byte, error)) (*identity.Identity, error) {
+	data, err := os.ReadFile(filepath.Join(info.Home, keyFileName))
+	if err != nil {
+		return nil, fmt.Errorf("load identity: %w", err)
 	}
-	return filepath.Join(home, path)
+
+	key, err := identity.Unmarshal(data, passphrase)
+	if err != nil {
+		return nil, fmt.Errorf("load identity: %w", err)
+	}
+
+	if key.NodeID() != info.Config.Node.ID {
+		return nil, fmt.Errorf("load identity: key is %s, config says %s: %w",
+			key.NodeID(), info.Config.Node.ID, ErrKeyMismatch)
+	}
+
+	return key, nil
+}
+
+// KeyEncrypted reports whether the node's key is protected by a passphrase.
+func (info *Info) KeyEncrypted() (bool, error) {
+	data, err := os.ReadFile(filepath.Join(info.Home, keyFileName))
+	if err != nil {
+		return false, err
+	}
+	return identity.IsEncrypted(data), nil
 }
 
 // checkStorageOutsideHome rejects a storage folder that is the node's folder
-// or contains it. Stored data must never share a folder with identity.key and
-// config.toml, or cleaning up storage could delete them.
+// or contains it, so stored data never mixes with the key and config.
 func checkStorageOutsideHome(home, storage string) error {
-	// Rel answers "how do I get from storage to home?". If that path stays
-	// inside storage ("." or "node"), home is storage or is inside it.
 	rel, err := filepath.Rel(storage, home)
 	if err == nil && filepath.IsLocal(rel) {
 		return fmt.Errorf("storage folder %s must not be or contain the node folder %s", storage, home)

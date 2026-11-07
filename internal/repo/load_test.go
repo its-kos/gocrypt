@@ -229,3 +229,90 @@ func writeFile(t *testing.T, path, content string) {
 		t.Fatal(err)
 	}
 }
+
+// passphrase returns a callback that always gives pw.
+func passphrase(pw string) func() ([]byte, error) {
+	return func() ([]byte, error) { return []byte(pw), nil }
+}
+
+func TestLoadIdentityPlain(t *testing.T) {
+	info := mustInit(t, filepath.Join(t.TempDir(), "node"), InitOptions{Name: "n"})
+
+	id, err := info.LoadIdentity(nil) // no passphrase needed for a plain key
+	if err != nil {
+		t.Fatalf("LoadIdentity() error: %v", err)
+	}
+	if id.NodeID() != info.Config.Node.ID {
+		t.Fatalf("loaded key has ID %s, config says %s", id.NodeID(), info.Config.Node.ID)
+	}
+}
+
+func TestLoadIdentityEncrypted(t *testing.T) {
+	info := mustInit(t, filepath.Join(t.TempDir(), "node"), InitOptions{Name: "n", Passphrase: passphrase("pw")})
+
+	id, err := info.LoadIdentity(passphrase("pw"))
+	if err != nil {
+		t.Fatalf("LoadIdentity() error: %v", err)
+	}
+	if id.NodeID() != info.Config.Node.ID {
+		t.Fatal("loaded key doesn't match the config")
+	}
+
+	if _, err := info.LoadIdentity(nil); err == nil {
+		t.Error("LoadIdentity(nil) of an encrypted key succeeded, want error")
+	}
+	if _, err := info.LoadIdentity(passphrase("wrong")); !errors.Is(err, identity.ErrWrongPassphrase) {
+		t.Errorf("LoadIdentity(wrong) error = %v, want identity.ErrWrongPassphrase", err)
+	}
+}
+
+func TestLoadIdentityMismatch(t *testing.T) {
+	// Copy another node's key over this node's key: the config and key no
+	// longer belong together (D9).
+	base := t.TempDir()
+	info := mustInit(t, filepath.Join(base, "a"), InitOptions{Name: "a"})
+	other := mustInit(t, filepath.Join(base, "b"), InitOptions{Name: "b"})
+	otherKey := readFile(t, filepath.Join(other.Home, keyFileName))
+	writeFile(t, filepath.Join(info.Home, keyFileName), otherKey)
+
+	_, err := info.LoadIdentity(nil)
+	if !errors.Is(err, ErrKeyMismatch) {
+		t.Fatalf("LoadIdentity() error = %v, want ErrKeyMismatch", err)
+	}
+}
+
+func TestLoadIdentityBrokenKey(t *testing.T) {
+	info := mustInit(t, filepath.Join(t.TempDir(), "node"), InitOptions{Name: "n"})
+	writeFile(t, filepath.Join(info.Home, keyFileName), "not a key")
+
+	_, err := info.LoadIdentity(nil)
+	if err == nil {
+		t.Fatal("LoadIdentity() of a broken key succeeded, want error")
+	}
+	if errors.Is(err, ErrKeyMismatch) {
+		t.Fatal("a broken key must not be reported as a mismatch")
+	}
+}
+
+func TestLoadIdentityMissingKey(t *testing.T) {
+	info := mustInit(t, filepath.Join(t.TempDir(), "node"), InitOptions{Name: "n"})
+	if err := os.Remove(filepath.Join(info.Home, keyFileName)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := info.LoadIdentity(nil); err == nil {
+		t.Fatal("LoadIdentity() with no key file succeeded, want error")
+	}
+}
+
+func TestKeyEncrypted(t *testing.T) {
+	base := t.TempDir()
+	plain := mustInit(t, filepath.Join(base, "plain"), InitOptions{Name: "n"})
+	enc := mustInit(t, filepath.Join(base, "enc"), InitOptions{Name: "n", Passphrase: passphrase("pw")})
+
+	if got, err := plain.KeyEncrypted(); err != nil || got {
+		t.Errorf("plain.KeyEncrypted() = %v, %v; want false, nil", got, err)
+	}
+	if got, err := enc.KeyEncrypted(); err != nil || !got {
+		t.Errorf("enc.KeyEncrypted() = %v, %v; want true, nil", got, err)
+	}
+}

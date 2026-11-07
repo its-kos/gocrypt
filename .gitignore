@@ -39,5 +39,5 @@ files
 # AI assistant knowledge base and skills (local only)
 AGENTS.md
 CLAUDE.md
-docs/knowledge/
+docs/
 .claude/
