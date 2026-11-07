@@ -138,6 +138,7 @@ internal/encryptor/    AES-256-GCM encryption
 internal/compressor/   gzip compression
 internal/chunker/      splitting data into chunks
 internal/config/       configuration
+internal/repo/         node setup and config
 ```
 
 ## Contributing
