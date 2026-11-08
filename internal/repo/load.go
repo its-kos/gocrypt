@@ -94,6 +94,11 @@ func (info *Info) LoadIdentity(passphrase func() ([]byte, error)) (*identity.Ide
 	return key, nil
 }
 
+// KeyPath returns the path of the node's identity.key.
+func (info *Info) KeyPath() string {
+	return filepath.Join(info.Home, keyFileName)
+}
+
 // KeyEncrypted reports whether the node's key is protected by a passphrase.
 func (info *Info) KeyEncrypted() (bool, error) {
 	data, err := os.ReadFile(filepath.Join(info.Home, keyFileName))
