@@ -9,7 +9,7 @@ import (
 
 // globalOptions holds flags that every command accepts.
 type globalOptions struct {
-	home string // --home: the node's folder
+	home string // --home: the node's folder. Used to run each command in that specific home.
 }
 
 // Execute runs the gocrypt command line. Cobra prints the error, so this only
@@ -45,5 +45,6 @@ Run "gocrypt --help" to see available commands, or
 		"the node's folder (default: $GOCRYPT_HOME, or ~/.gocrypt)")
 
 	root.AddCommand(newInitCmd(global))
+	root.AddCommand(newStatusCmd(global))
 	return root
 }

@@ -26,15 +26,15 @@ from any of them.
 This describes the intended design. Most of it is not built yet.
 
 - **Nodes.** Every machine that takes part runs GoCrypt and is called a node.
-  There is no master node; any node can store and restore files.
+  There is no master node and any node can store and restore files.
 - **CLI and node service.** The same `gocrypt` binary is used for short
   commands (`init`, `status`, storing and restoring files) and for a
   long-running node service that other nodes talk to. The service is always
   started explicitly, never in the background behind your back.
-- **Identity.** On `gocrypt init`, each node generates an Ed25519 keypair. The
-  public key, written in base32, is the node's ID. Nodes will use these keys to
+- **Identity.** On `gocrypt init`, each node generates an *Ed25519* keypair. The
+  public key, written in *base32*, is the node's ID. Nodes will use these keys to
   prove who they are to each other.
-- **Encryption.** File data is encrypted with AES-256-GCM before it is sent to
+- **Encryption.** File data is encrypted with *AES-256-GCM* before it is sent to
   another node, so storage nodes only ever hold ciphertext.
 - **Distribution.** Files are split into chunks and placed on different nodes.
   Redundancy, so a file survives losing a machine, is planned but not designed
@@ -52,7 +52,7 @@ This describes the intended design. Most of it is not built yet.
 
 ## Installation
 
-Requires Go 1.27 or later. Linux and macOS are supported; Windows support is
+Requires Go 1.27 or later. Linux and macOS are supported. Windows support is
 planned.
 
 ```sh
@@ -80,10 +80,10 @@ gocrypt init --encrypt-key                    # protect the node key with a pass
 
 ```
 $ gocrypt init --name homelab
-Initialized GoCrypt node in /home/you/.gocrypt
+Initialized GoCrypt node in /home/<user>/.gocrypt
   Name:     homelab
   Node ID:  wesqvi2qlr3arybdtuo3zzwy23whfgppdcxazy3w4fkngvdycx3a
-  Storage:  /home/you/.gocrypt/storage
+  Storage:  /home/<user>/.gocrypt/storage
 ```
 
 Running `init` again on a machine that is already set up changes nothing and
