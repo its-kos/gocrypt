@@ -1,65 +1,29 @@
+// Package network provides commands for managing GoCrypt networks.
 package network
 
 import (
-	cmd "github.com/its-kos/gocrypt/commands"
+	"github.com/its-kos/gocrypt/cli"
 	"github.com/spf13/cobra"
 )
 
-func newNetworkCmd(global *cmd.globalOptions) *cobra.Command {
-	return &cobra.Command{
+func NewNetworkCmd(global *cli.GlobalOptions) *cobra.Command {
+	cmd := &cobra.Command{
 		Use:   "network",
-		Short: "Show this node's details and check it for problems",
-		Long: `Show this node's details and check it for problems.
+		Short: "Manage GoCrypt networks",
+		Long: `Manage the logical networks this node belongs to.
 
-status never asks for a passphrase. If the node's key is encrypted, it is not
-compared with the config here; that happens when the node starts.
+Create networks, join existing networks, inspect network details,
+and manage this node's network memberships.
 
-The exit status is 1 if there is any problem, so status can be used in
-scripts and health checks.`,
+Use "gocrypt network --help" to see available operations.`,
 		Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			cmd.SilenceUsage = true
-			return runNetwork(cmd, global)
-		},
 	}
+
+	cmd.AddCommand(newNetworkListCmd(global))
+	cmd.AddCommand(newNetworkCreateCmd(global))
+	cmd.AddCommand(newNetworkJoinCmd(global))
+	cmd.AddCommand(newNetworkLeaveCmd(global))
+	cmd.AddCommand(newNetworkInspectCmd(global))
+
+	return cmd
 }
-
-func newNetworkStatusCmd(global *cmd.globalOptions) *cobra.Command {
-	return &cobra.Command{
-		Use:   "network",
-		Short: "Show this node's details and check it for problems",
-		Long: `Show this node's details and check it for problems.
-
-status never asks for a passphrase. If the node's key is encrypted, it is not
-compared with the config here; that happens when the node starts.
-
-The exit status is 1 if there is any problem, so status can be used in
-scripts and health checks.`,
-		Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			cmd.SilenceUsage = true
-			return runNetwork(cmd, global)
-		},
-	}
-}
-
-func newNetworkCreateCmd(global *cmd.globalOptions) *cobra.Command {
-	return &cobra.Command{
-		Use:   "network",
-		Short: "Show this node's details and check it for problems",
-		Long: `Show this node's details and check it for problems.
-
-status never asks for a passphrase. If the node's key is encrypted, it is not
-compared with the config here; that happens when the node starts.
-
-The exit status is 1 if there is any problem, so status can be used in
-scripts and health checks.`,
-		Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			cmd.SilenceUsage = true
-			return runNetwork(cmd, global)
-		},
-	}
-}
-
-func runNetwork(cmd *cobra.Command, global *cmd.globalOptions) error {}

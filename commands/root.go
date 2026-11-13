@@ -4,14 +4,10 @@ package cmd
 import (
 	"os"
 
-	"github.com/its-kos/gocrypt/cmd/commands/network"
+	"github.com/its-kos/gocrypt/cli"
+	"github.com/its-kos/gocrypt/commands/network"
 	"github.com/spf13/cobra"
 )
-
-// globalOptions holds flags that every command accepts.
-type globalOptions struct {
-	home string // --home: the node's folder. Used to run each command in that specific home.
-}
 
 // Execute runs the gocrypt command line. Cobra prints the error, so this only
 // sets the exit status.
@@ -24,7 +20,7 @@ func Execute() {
 // newRootCmd builds the whole command tree. Building it fresh (instead of
 // using package-level variables) gives every test its own flags and output.
 func newRootCmd() *cobra.Command {
-	global := &globalOptions{}
+	global := &cli.GlobalOptions{}
 
 	root := &cobra.Command{
 		Use:   "gocrypt",
@@ -42,11 +38,12 @@ Run "gocrypt --help" to see available commands, or
 	}
 
 	// Persistent: every subcommand accepts --home.
-	root.PersistentFlags().StringVar(&global.home, "home", "",
+	root.PersistentFlags().StringVar(&global.Home, "home", "",
 		"the node's folder (default: $GOCRYPT_HOME, or ~/.gocrypt)")
 
 	root.AddCommand(newInitCmd(global))
 	root.AddCommand(newStatusCmd(global))
-	root.AddCommand(network.newNetworkCmd(global))
+	root.AddCommand(network.NewNetworkCmd(global))
+
 	return root
 }

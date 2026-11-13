@@ -9,7 +9,7 @@ import (
 	"github.com/its-kos/gocrypt/internal/repo"
 )
 
-func newStatusCmd(global *globalOptions) *cobra.Command {
+func newStatusCmd(global *GlobalOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
 		Short: "Show this node's details and check it for problems",
@@ -28,7 +28,7 @@ scripts and health checks.`,
 	}
 }
 
-func runStatus(cmd *cobra.Command, global *globalOptions) error {
+func runStatus(cmd *cobra.Command, global *GlobalOptions) error {
 	home, err := repo.ResolveHome(global.home)
 	if err != nil {
 		return err

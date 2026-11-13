@@ -1,3 +1,4 @@
+// Package encryptor is responsible for encrypting and decrypting data.
 package encryptor
 
 import (

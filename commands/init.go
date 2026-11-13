@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/its-kos/gocrypt/cli"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
@@ -24,7 +25,7 @@ type initOptions struct {
 	passphraseFile string
 }
 
-func newInitCmd(global *globalOptions) *cobra.Command {
+func newInitCmd(global *cli.GlobalOptions) *cobra.Command {
 	opts := &initOptions{}
 
 	cmd := &cobra.Command{
@@ -58,12 +59,12 @@ the node's details.`,
 	return cmd
 }
 
-func runInit(cmd *cobra.Command, global *globalOptions, opts *initOptions) error {
+func runInit(cmd *cobra.Command, global *cli.GlobalOptions, opts *initOptions) error {
 	if opts.passphraseFile != "" && !opts.encryptKey {
 		return errors.New("--passphrase-file only makes sense together with --encrypt-key")
 	}
 
-	home, err := repo.ResolveHome(global.home)
+	home, err := repo.ResolveHome(global.Home)
 	if err != nil {
 		return err
 	}
