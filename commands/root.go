@@ -4,6 +4,7 @@ package cmd
 import (
 	"os"
 
+	"github.com/its-kos/gocrypt/cmd/commands/network"
 	"github.com/spf13/cobra"
 )
 
@@ -46,5 +47,6 @@ Run "gocrypt --help" to see available commands, or
 
 	root.AddCommand(newInitCmd(global))
 	root.AddCommand(newStatusCmd(global))
+	root.AddCommand(network.newNetworkCmd(global))
 	return root
 }

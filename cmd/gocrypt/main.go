@@ -1,6 +1,8 @@
 package main
 
-import cmd "github.com/its-kos/gocrypt/cmd/commands"
+import (
+	"github.com/its-kos/gocrypt/commands"
+)
 
 func main() {
 	cmd.Execute()
